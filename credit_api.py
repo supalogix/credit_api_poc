@@ -12,6 +12,11 @@ api = Api(
 ns = api.namespace('approve_credit', 
    description='Approve Credit Operations')
 
+from flask.ext.restplus import fields
+resource_fields = api.model('Resource', {
+    'result': fields.String,
+})
+
 parser = api.parser()
 parser.add_argument(
    'RevolvingUtilizationOfUnsecuredLines', 
@@ -79,6 +84,7 @@ from flask.ext.restplus import Resource
 class CreditApi(Resource):
 
    @api.doc(parser=parser)
+   @api.marshal_with(resource_fields)
    def post(self):
      args = parser.parse_args()
      result = self.get_result(args)
@@ -115,9 +121,13 @@ class CreditApi(Resource):
       clf = joblib.load('model/nb.pkl');
 
       result = clf.predict(df)
+      if(result[0] == 1.0): 
+         result = "deny" 
+      else: 
+         result = "approve"
 
       return {
-         "result": result[0]
+         "result": result
       }
 
 if __name__ == '__main__':
