@@ -1,50 +1,57 @@
 import pandas as pd
-
-###
-### Load Data Set
-###
-path='cs-training.csv'
-df=pd.read_csv(
-    'cs-training.csv', 
-    sep=',',
-    header=0)
-data = df.drop(
-    df.columns[0], 
-    axis=1)
-
-# Drop rows with missing column data
-data = data.dropna()
-
-###
-### Convert Data Into List Of Dict Records
-###
-data = data.to_dict(orient='records')
-
-###
-### Seperate Target and Outcome Features
-###
-from sklearn.feature_extraction import DictVectorizer
 from pandas import DataFrame
-vec = DictVectorizer()
+from sklearn.feature_extraction import DictVectorizer
+from sklearn.naive_bayes import GaussianNB
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_validate
+from sklearn.metrics import confusion_matrix
+import joblib
 
-df_data = vec.fit_transform(data).toarray()
-feature_names = vec.get_feature_names()
-df_data = DataFrame(
-    df_data,
-    columns=feature_names)
-    
-outcome_feature = df_data['SeriousDlqin2yrs']
-target_features = df_data.drop('SeriousDlqin2yrs', axis=1)
+def load_data_set():
+    path='cs-training.csv'
+    df=pd.read_csv( path, sep=',', header=0 )
+    data = df.drop( df.columns[0], axis=1)
 
- 
+    return data
+
+def get_features(data):
+    ###
+    ### Drop rows with missing column data
+    ###
+
+    data = data.dropna()
+
+    ###
+    ### Convert Data Into List Of Dict Records
+    ###
+
+    data = data.to_dict(orient='records')
+
+    ###
+    ### Seperate Target and Outcome Features
+    ###
+
+    vec = DictVectorizer()
+
+    df_data = vec.fit_transform(data).toarray()
+    feature_names = vec.get_feature_names()
+    df_data = DataFrame(
+        df_data,
+        columns=feature_names)
+
+    outcome_feature = df_data['SeriousDlqin2yrs']
+    target_features = df_data.drop('SeriousDlqin2yrs', axis=1)
+
+    return outcome_feature, target_features
 
 
 
+data = load_data_set()
+outcome_feature, target_features = get_features(data)
 
 ###
 ### Generate Training and Testing Set 
 ###
-from sklearn import cross_validation
 
 """
     X_1: independent variables for first data set
@@ -52,27 +59,25 @@ from sklearn import cross_validation
     X_2: independent variables for the second data set
     Y_2: dependent (target) variable for the second data set
 """
-X_1, X_2, Y_1, Y_2 = cross_validation.train_test_split(
-    target_features, outcome_feature, test_size=0.5, random_state=0)
-    
-    
-    
-
+X_1, X_2, Y_1, Y_2 = train_test_split(
+    target_features, 
+    outcome_feature, 
+    test_size=0.5, 
+    random_state=0)
     
 ###
 ### Define Classifier
 ###                             
-from sklearn.naive_bayes import GaussianNB
-clf = GaussianNB()
 
+clf = GaussianNB()
 
 ###
 ### Train Classifier on (X1,Y1) and Validate on (X2,Y2)
 ###                              
+
 clf.fit(X_1,Y_1)
 score = clf.score(X_2, Y_2)
-print "accuracy: {0}".format(score.mean())
-
+print("accuracy: {0}".format(score.mean()))
 
 ###
 ### Print Confusion Matrix
@@ -80,18 +85,10 @@ print "accuracy: {0}".format(score.mean())
 
 output = clf.predict(X_2)
 
-from sklearn.metrics import confusion_matrix
 matrix = confusion_matrix(output, Y_2)
-print matrix
-
-
-
-
+print(matrix)
 
 ###
 ### Save Classifier
 ###
-from sklearn.externals import joblib
 joblib.dump(clf, 'model/nb.pkl')
-
-
